@@ -1,0 +1,11 @@
+pandas
+numpy
+pywin32
+wmi
+sqlalchemy
+sqlalchemy-firebird
+packaging
+tk
+fdb
+pyodbc
+openpyxl

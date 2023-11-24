@@ -1,0 +1,9 @@
+- imprimir excel (feito)
+    - colocar configuração para escolher nome e local de salvamento
+- colocar barra de rolagem na consulta
+- arrumar bug da barra de rolagem da tabela quando altera o tamanho da coluna
+- arrumar o bug do texto de erro cobrir uma parte do frame inferior
+
+talvez:
+
+- deixar a filtragem das palavras reservas, mais rapida (colocar um mostrador de tempo de execução nele para testar)
