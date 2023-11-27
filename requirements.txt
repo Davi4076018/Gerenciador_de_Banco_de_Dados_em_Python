@@ -9,3 +9,5 @@ tk
 fdb
 pyodbc
 openpyxl
+psycopg2
+pyinstaller

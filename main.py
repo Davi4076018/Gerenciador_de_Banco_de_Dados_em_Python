@@ -3,6 +3,7 @@ from tkinter.ttk import *
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showinfo, showerror
+from tkinter import filedialog as fd
 from datetime import datetime
 import re
 import sqlalchemy
@@ -23,6 +24,7 @@ ThreadON = False
 SQLAtual = ''
 sqlserver_uri_Atual = ''
 firebird_uri_Atual = ''
+PostGre_uri_Atual = ''
 
 palavrasReservadas = []
 
@@ -38,7 +40,7 @@ def GetReservadas():
         palavrasReservadas = [s.replace('\n', '') for s in f.readlines()]
         f.close()
 def GetParametros():
-    global SQLAtual, sqlserver_uri_Atual, firebird_uri_Atual
+    global SQLAtual, sqlserver_uri_Atual, firebird_uri_Atual, PostGre_uri_Atual
     with open('assets/parametros.txt', "r") as f:
         conteudo = f.readlines()
         f.close()
@@ -49,9 +51,12 @@ def GetParametros():
             sqlserver_uri_Atual = linha[len("sqlserver_uri="):].replace("\n", "")
         elif (linha.find('firebird_uri=')) != -1:
             firebird_uri_Atual = linha[len("firebird_uri="):].replace("\n", "")
+        elif (linha.find('postgre_uri=')) != -1:
+            PostGre_uri_Atual = linha[len("postgre_uri="):].replace("\n", "")
     print(SQLAtual)
     print(sqlserver_uri_Atual)
     print(firebird_uri_Atual)
+    print(PostGre_uri_Atual)
 def SetParametros(parametro, valor):
     with open('assets/parametros.txt', "r") as f:
         conteudo = f.readlines()
@@ -112,15 +117,18 @@ def check_input(event=''):
                 textQuery.tag_add("blue",  str(linha) + "." + str(loc - ultimobreak), str(linha) + "." + str(int(loc - ultimobreak) + len(palavra)))
 def Consulta():
     global df_tree, treeXScroll, treeYScroll, ThreadON, Stop, textError, engineAtual, dfquery
-    if SQLAtual == "Firebird":
-        db_uri = firebird_uri_Atual
-        engineAtual = create_engine(db_uri)
-    elif SQLAtual == "SqlServer":
-        params = urllib.parse.quote_plus(
-            'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
-        engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
     ThreadON = True
     try:
+        if SQLAtual == "Firebird":
+            db_uri = firebird_uri_Atual
+            engineAtual = create_engine(db_uri)
+        elif SQLAtual == "SqlServer":
+            params = urllib.parse.quote_plus(
+                'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
+            engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
+        elif SQLAtual == "PostgreSQL":
+            db_uri = PostGre_uri_Atual
+            engineAtual = create_engine(db_uri)
         try:
             consulta = textQuery.get('sel.first', 'sel.last').replace("\n", "")
         except:
@@ -149,16 +157,31 @@ def Consulta():
         except:
             pass
 
+
         df_list = dfquery.columns.values.tolist()
         df_tree = ttk.Treeview(Bottomframe, columns=df_list)
-        tam = int(int(screen_width)/len(df_list))
-        if tam < 150:
-            tam = 150
+
+        tam = 0
+        soma = 0
         for i in df_list:
-            df_tree.column(i, width=tam, anchor='c')
+            try:
+                tam = int(dfquery[i].astype(str).map(len).max()) * 10
+                if tam < (len(i) * 10):
+                    tam = len(i) * 10
+            except Exception as e1:
+                tam = 300
+            soma += tam
+
+        if soma < int(screen_width):
+            tam = int(int(screen_width) / len(df_list))
+            if tam < 150:
+                tam = 150
+
+        for i in df_list:
+            df_tree.column(i, width=tam, anchor='c', stretch = False)
             df_tree.heading(i, text=i)
         widthID = int(str(len(str(len(dfquery)))) + "0") + 10
-        df_tree.column('#0', width = widthID, anchor="w")
+        df_tree.column('#0', width = widthID, anchor="w", stretch = False)
         df_tree.tag_configure(tagname="gray", background="#f2f2f2")
         df_tree.tag_configure(tagname="white", background="#ffffff")
         cont = 0
@@ -231,12 +254,17 @@ def textAdd(Text):
     textQuery.insert('0.0',  Conteudo + Text)
     check_input()
 def clear():
-    textQuery.delete("1.0", "end-1c")
 
+    textQuery.delete("1.0", "end-1c")
 def df_to_excel():
     global dfquery
     if not(dfquery.empty):
-        dfquery.to_excel("gerados/test.xlsx")
+        filename = fd.asksaveasfilename(initialdir="/",
+                                        defaultextension="*.xlsx*",
+                                        filetypes=(("Excel file", "¨*.xlsx"),))
+        if not filename:
+            return
+        dfquery.to_excel(filename)
 def config():
     global tela2
 
@@ -268,22 +296,29 @@ def config():
                 showerror(
                     title='Mensagem de Erro',
                     message='O FireBird não está conectado, verifique a url de conexão')
+        elif tipo == 3:
+            db_uri = str(dbSaveFirebird.get())
+            enginePostgre = create_engine(db_uri)
+            try:
+                dftest = pd.read_sql_query('SELECT 1', con=enginePostgre)
+                showinfo(
+                    title='Mensagem Informativa',
+                    message='O PostgreSQL está conectado com sucesso'
+                )
+            except:
+                showerror(
+                    title='Mensagem de Erro',
+                    message='O PostgreSQL não está conectado, verifique a url de conexão')
 
     def fechar():
         tela2.destroy()
-
-    # Caso já tenha uma tela ativa identica a essa, ela é destruida para evitar duplicatas
-    try:
-        tela2.destroy()
-    except:
-        pass
 
     def salvar(tipo):
         if tipo == 1:
             if dbUserSQLSERVER.get() != "":
                 SetParametros("sqlserver_uri", dbUserSQLSERVER.get())
                 dbSaveSQLSERVER.config(state=NORMAL)
-                dbSaveSQLSERVER.delete(0)
+                dbSaveSQLSERVER.delete(0, 'end')
                 dbSaveSQLSERVER.insert(0, str(dbUserSQLSERVER.get()))
                 dbSaveSQLSERVER.config(state=DISABLED)
                 showinfo(
@@ -300,12 +335,29 @@ def config():
             if dbUserFirebird.get() != "":
                 SetParametros("firebird_uri", dbUserSQLSERVER.get())
                 dbSaveFirebird.config(state=NORMAL)
-                dbSaveFirebird.delete(0)
+                dbSaveFirebird.delete(0, 'end')
                 dbSaveFirebird.insert(0, str(dbUserFirebird.get()))
                 dbSaveFirebird.config(state=DISABLED)
                 showinfo(
                     title='Mensagem Informativa',
                     message='Novo url do Firebird salvo com sucesso'
+                )
+                GetParametros()
+            else:
+                showerror(
+                    title='Mensagem de Erro',
+                    message='O valor não pode ser vazio'
+                )
+        elif tipo == 3:
+            if dbUserPostGre.get() != "":
+                SetParametros("postgre_uri", dbUserPostGre.get())
+                dbSavePostGre.config(state=NORMAL)
+                dbSavePostGre.delete(0, 'end')
+                dbSavePostGre.insert(0, str(dbUserPostGre.get()))
+                dbSavePostGre.config(state=DISABLED)
+                showinfo(
+                    title='Mensagem Informativa',
+                    message='Novo url do PostgreSQL salva com sucesso'
                 )
                 GetParametros()
             else:
@@ -331,7 +383,21 @@ def config():
                 title='Mensagem Informativa',
                 message='o Banco de dados atual foi definido como: Firebird'
             )
+        elif tipo == 3:
+            SetParametros("atual", "PostgreSQL")
+            GetParametros()
+            IconSQLAtual.config(image=postgreeIcon)
+            showinfo(
+                title='Mensagem Informativa',
+                message='o Banco de dados atual foi definido como: PostgreSQL'
+            )
 
+     # Caso já tenha uma tela ativa identica a essa, ela é destruida para evitar duplicatas
+
+    try:
+        tela2.destroy()
+    except:
+        pass
     # cria uma nova janela no nivel acima da normal
     UserWindow = tk.Toplevel()
     # trava as janelas inferiores para não responderem enquanto a superior estiver ativa
@@ -349,9 +415,11 @@ def config():
 
     tab1 = ttk.Frame(tabControl)
     tab2 = ttk.Frame(tabControl)
+    tab3 = ttk.Frame(tabControl)
 
     tabControl.add(tab1, text='SQL SERVER')
     tabControl.add(tab2, text='FireBird')
+    tabControl.add(tab3, text='Postgresql')
     tabControl.pack(expand=1, fill="both")
 
     # tab1
@@ -497,10 +565,82 @@ def config():
                          width=135,
                          height=30)
 
+    # tab3
+    LabelFundoTab3 = tk.Label(tab3, image=tab3Fundo)
+    LabelFundoTab3.place(x=0, y=0)
+
+    dbUserPostGre = tk.Entry(tab3,
+                              font=("Helvetica", 10),
+                              highlightthickness=2,
+                              fg="black")
+
+    dbUserPostGre.place(x=135, y=190,
+                         width=480,
+                         height=30)
+
+    labelurlUserTab3 = Label(tab3, text="Url Nova:", font=("Helvetica", 13), background="white", foreground="gray")
+    labelurlUserTab3.place(x=60, y=195)
+
+    dbSavePostGre = tk.Entry(tab3,
+                              font=("Helvetica", 10),
+                              highlightthickness=2,
+                              fg="black")
+
+    dbSavePostGre.place(x=135, y=260,
+                         width=480,
+                         height=30)
+
+    labelurlSaveTab3 = Label(tab3, text="Url Atual:", font=("Helvetica", 13), background="white", foreground="gray")
+    labelurlSaveTab3.place(x=60, y=265)
+
+    dbSavePostGre.insert(0, PostGre_uri_Atual)
+    dbSavePostGre.config(state=DISABLED)
+
+    btTestarConecTab3 = tk.Button(tab3, text="Testar Conexão", command=lambda: testarconec(tipo=3),
+                                  font=("Helvetica", 13),
+                                  highlightthickness=2,
+                                  fg="grey"
+                                  )
+
+    btTestarConecTab3.place(x=25, y=350,
+                            width=175,
+                            height=30)
+
+    btSalvarTab3 = tk.Button(tab3, text="Salvar", command=lambda: salvar(tipo=3),
+                             font=("Helvetica", 13),
+                             highlightthickness=2,
+                             fg="grey"
+                             )
+
+    btSalvarTab3.place(x=455, y=350,
+                       width=100,
+                       height=30)
+
+    btCancelarTab3 = tk.Button(tab3, text="Fechar", command=fechar,
+                               font=("Helvetica", 13),
+                               highlightthickness=2,
+                               fg="grey"
+                               )
+
+    btCancelarTab3.place(x=575, y=350,
+                         width=100,
+                         height=30)
+
+    btSetAtualTab3 = tk.Button(tab3, text="Tornar Atual", command=lambda: tornarAtual(tipo=3),
+                               font=("Helvetica", 13),
+                               highlightthickness=2,
+                               fg="grey"
+                               )
+
+    btSetAtualTab3.place(x=300, y=350,
+                         width=135,
+                         height=30)
+
 root = Tk()
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 root.geometry("1000x800")  # Tamanho fixo da janela
+root.state('zoomed')
 
 cancelIcon = PhotoImage(file="assets/icons/cancel_icon.png")
 runIcon = PhotoImage(file="assets/icons/run_icon.png")
@@ -517,10 +657,11 @@ configIcon = PhotoImage(file="assets/icons/config_icon.png")
 firebirdIcon = PhotoImage(file="assets/icons/firebird_icon.png")
 sqlserverIcon = PhotoImage(file="assets/icons/sqlserver_icon.png")
 excelIcon = PhotoImage(file="assets/icons/excel_icon.png")
+postgreeIcon = PhotoImage(file="assets/icons/postgre_icon.png")
 
 tab1Fundo = PhotoImage(file="assets/fundos/tab1_fundo.png")
 tab2Fundo = PhotoImage(file="assets/fundos/tab2_fundo.png")
-
+tab3Fundo = PhotoImage(file="assets/fundos/tab3_fundo.png")
 
 s = Style()
 s.configure('My.TFrame', background='#F7F7F7')
@@ -534,6 +675,8 @@ if SQLAtual == "Firebird":
     sqlAtualIcon = firebirdIcon
 elif SQLAtual == "SqlServer":
     sqlAtualIcon = sqlserverIcon
+elif SQLAtual == "PostgreSQL":
+    sqlAtualIcon = postgreeIcon
 
 #root.resizable(False, False)
 frame = Frame(root)
@@ -591,15 +734,19 @@ buttonExcel = tk.Button(Headerframe, image=excelIcon, command=df_to_excel, bg='w
 buttonExcel.pack(side='left')
 
 textQuery = tk.Text(topframe, undo = True)
-textQuery.pack(expand = True, fill = tk.BOTH)
+textQuery.pack(side=RIGHT, expand = True, fill = tk.BOTH)
 
 textQuery.tag_configure("blue", foreground="blue")
 textQuery.bind('<KeyRelease>', check_input)
 textQuery.bind('<Button-3>',rClicker, add='')
+textQueryYScroll = ttk.Scrollbar(topframe, orient=VERTICAL, command=textQuery.yview)
+textQueryYScroll.pack(side=LEFT, fill=Y)
+textQuery['yscrollcommand'] = textQueryYScroll.set
 
 df_tree = ttk.Treeview(Bottomframe, columns=[])
 df_tree.pack(expand = True, fill=BOTH)
 treeXScroll = ttk.Scrollbar(Midframe, orient=HORIZONTAL)
+
 treeYScroll = ttk.Scrollbar(Bottomframe, orient=VERTICAL)
 #textShow = tk.Text(Bottomframe, undo = True)
 #textShow.pack(expand = True, fill = tk.BOTH)
