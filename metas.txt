@@ -2,7 +2,8 @@
     - colocar configuração para escolher nome e local de salvamento (feito)
 - colocar barra de rolagem na consulta (FEITO)
 - arrumar bug da barra de rolagem da tabela quando altera o tamanho da coluna (feito)
-- colocar o postgree nas opções
+- colocar o postgree nas opções (feito)
+- arrumar o bug do executavel
 
 talvez:
 

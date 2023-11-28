@@ -2,8 +2,6 @@ pandas
 numpy
 pywin32
 wmi
-sqlalchemy
-sqlalchemy-firebird
 packaging
 tk
 fdb
@@ -11,3 +9,5 @@ pyodbc
 openpyxl
 psycopg2
 pyinstaller
+firebirdsql
+sqlalchemy==1.4

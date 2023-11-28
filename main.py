@@ -5,15 +5,22 @@ from tkinter import ttk
 from tkinter.messagebox import showinfo, showerror
 from tkinter import filedialog as fd
 from datetime import datetime
+from sqlalchemy.dialects.firebird.base import FBDialect
 import re
 import sqlalchemy
 import fdb
 import pyodbc
+import firebirdsql
+#import sqlalchemy_firebird
 from threading import *
 from sqlalchemy import create_engine
 import urllib
 import pandas as pd
 import openpyxl
+import sqlalchemy.dialects
+import os
+
+fdb.load_api(r'assets/dll/fbclient.dll')
 
 engineAtual = ''
 
