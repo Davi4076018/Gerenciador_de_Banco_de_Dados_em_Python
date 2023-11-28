@@ -1,1 +1,1 @@
-pyinstaller --add-binary fbclient.dll;. --onefile --windowed -i "logoicon.ico" main.py
+pyinstaller --onefile --windowed -i "logoicon.ico" main.py
