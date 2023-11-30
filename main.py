@@ -16,6 +16,7 @@ from threading import *
 from sqlalchemy import create_engine
 import urllib
 import pandas as pd
+from sqlalchemy import text
 import openpyxl
 import sqlalchemy.dialects
 import os
@@ -41,6 +42,7 @@ Stop = False
 tela2 = ''
 
 dfquery = pd.DataFrame()
+
 def GetReservadas():
     global palavrasReservadas
     with open('assets/reservadas.txt', "r") as f:
@@ -74,35 +76,48 @@ def SetParametros(parametro, valor):
             break
     with open('assets/parametros.txt', "w+") as f:
         f.write("".join(conteudo))
-def rClicker(e):
+def rClickerQuery(e):
     try:
-        def rClick_Copy(e, apnd=0):
-            e.widget.event_generate('<Control-c>')
-
-        def rClick_Cut(e):
-            e.widget.event_generate('<Control-x>')
-
-        def rClick_Paste(e):
-            e.widget.event_generate('<Control-v>')
+        def tornarAtualR(tipo=1):
+            if tipo == 1:
+                SetParametros("atual", "SqlServer")
+                GetParametros()
+                IconSQLAtual.config(image=sqlserverIcon)
+            elif tipo == 2:
+                SetParametros("atual", "Firebird")
+                GetParametros()
+                IconSQLAtual.config(image=firebirdIcon)
+            elif tipo == 3:
+                SetParametros("atual", "PostgreSQL")
+                GetParametros()
+                IconSQLAtual.config(image=postgreeIcon)
 
         e.widget.focus()
-
-        nclst=[
-               (' Recortar', lambda: rClick_Cut(e)),
-               (' Copiar', lambda: rClick_Copy(e)),
-               (' Colar', lambda: rClick_Paste(e)),
-               ]
-
         rmenu = Menu(None, tearoff=0, takefocus=0)
-
-        for (txt, cmd) in nclst:
-            rmenu.add_command(label=txt, command=cmd)
-
+        rmenu.config(bg="white")
+        rmenu.add_command(label=' Consultar', image=runIcon, compound='left', command=Consulta)
+        rmenu.add_command(label=' SqlServer', image=sqlserverIcon, compound='left', command=lambda: tornarAtualR(1))
+        rmenu.add_command(label=' FireBird', image=firebirdIcon, compound='left', command=lambda: tornarAtualR(2))
+        rmenu.add_command(label=' PostGree', image=postgreeIcon, compound='left', command=lambda: tornarAtualR(3))
+        rmenu.add_command(label=' Limpar', image=clearIcon, compound='left', command=clear)
+        rmenu.add_command(label=' Configurações', image=configIcon, compound='left', command=config)
         rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
 
-    except TclError:
-        print (' - rClick menu, something wrong')
-        pass
+    except Exception as e3:
+        print(e3)
+
+    return "break"
+def rClickerTabela(e):
+    try:
+
+        e.widget.focus()
+        rmenu = Menu(None, tearoff=0, takefocus=0)
+        rmenu.config(bg="white")
+        rmenu.add_command(label=' Gerar Excel', image=excelIcon, compound='left', command=df_to_excel)
+        rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
+
+    except Exception as e3:
+        print(e3)
 
     return "break"
 def check_input(event=''):
@@ -125,6 +140,7 @@ def check_input(event=''):
 def Consulta():
     global df_tree, treeXScroll, treeYScroll, ThreadON, Stop, textError, engineAtual, dfquery
     ThreadON = True
+    ConsultaSemRetorno = False
     try:
         if SQLAtual == "Firebird":
             db_uri = firebird_uri_Atual
@@ -141,79 +157,100 @@ def Consulta():
         except:
             consulta = textQuery.get("1.0","end-1c")
         DataConsulta = datetime.now()
-        dfquery = pd.read_sql_query(consulta, con=engineAtual)  # INSERT DO SQLSERVER
-        if Stop:
-            raise Exception('Consulta Cancelada')
         try:
-            df_tree.destroy()
+            dfquery = pd.read_sql_query(consulta, con=engineAtual)  # INSERT DO SQLSERVER
         except:
-            pass
-
-        try:
-            treeXScroll.destroy()
-        except:
-            pass
-
-        try:
-            treeYScroll.destroy()
-        except:
-            pass
-
-        try:
-            textError.destroy()
-        except:
-            pass
-
-
-        df_list = dfquery.columns.values.tolist()
-        df_tree = ttk.Treeview(Bottomframe, columns=df_list)
-
-        tam = 0
-        soma = 0
-        for i in df_list:
-            try:
-                tam = int(dfquery[i].astype(str).map(len).max()) * 10
-                if tam < (len(i) * 10):
-                    tam = len(i) * 10
-            except Exception as e1:
-                tam = 300
-            soma += tam
-
-        if soma < int(screen_width):
-            tam = int(int(screen_width) / len(df_list))
-            if tam < 150:
-                tam = 150
-
-        for i in df_list:
-            df_tree.column(i, width=tam, anchor='c', stretch = False)
-            df_tree.heading(i, text=i)
-        widthID = int(str(len(str(len(dfquery)))) + "0") + 10
-        df_tree.column('#0', width = widthID, anchor="w", stretch = False)
-        df_tree.tag_configure(tagname="gray", background="#f2f2f2")
-        df_tree.tag_configure(tagname="white", background="#ffffff")
-        cont = 0
-        for index, row in dfquery.iterrows():
-            if (cont % 2) == 0:
-                df_tree.insert("", 'end', tags="gray",text=index, values=list(row))
-            else:
-                df_tree.insert("", 'end', tags="white", text=index, values=list(row))
-            cont += 1
+            ConsultaSemRetorno = True
+        if not(ConsultaSemRetorno):
             if Stop:
                 raise Exception('Consulta Cancelada')
+            try:
+                df_tree.destroy()
+            except:
+                pass
 
-        VarLinhas.set("Linhas: " + str(len(dfquery)) + "  |")
-        VarColunas.set("|  Colunas: " + str(len(dfquery.columns)) + "  |")
-        VarTempoConsulta.set(" | Tempo da Consulta: " + str(datetime.now() - DataConsulta))
-        # attach a Horizontal (x) scrollbar to the frame
-        treeXScroll = ttk.Scrollbar(Midframe, orient=HORIZONTAL)
-        treeXScroll.configure(command=df_tree.xview)
-        treeYScroll = ttk.Scrollbar(Bottomframe, orient=VERTICAL)
-        treeYScroll.configure(command=df_tree.yview)
-        df_tree.configure(xscrollcommand=treeXScroll.set)
-        df_tree.configure(yscrollcommand=treeYScroll.set)
-        treeXScroll.pack(fill=X)
-        treeYScroll.pack(side='left', expand=True, fill=Y)
-        df_tree.pack(expand=True, fill=BOTH)
+            try:
+                treeXScroll.destroy()
+            except:
+                pass
+
+            try:
+                treeYScroll.destroy()
+            except:
+                pass
+
+            try:
+                textError.destroy()
+            except:
+                pass
+
+
+            df_list = dfquery.columns.values.tolist()
+            df_tree = ttk.Treeview(Bottomframe, columns=df_list)
+
+            tam = 0
+            soma = 0
+            for i in df_list:
+                try:
+                    tam = int(dfquery[i].astype(str).map(len).max()) * 10
+                    if tam < (len(i) * 10):
+                        tam = len(i) * 10
+                except Exception as e1:
+                    tam = 300
+                soma += tam
+
+            if soma < int(screen_width):
+                tam = int(int(screen_width) / len(df_list))
+                if tam < 150:
+                    tam = 150
+
+            for i in df_list:
+                df_tree.column(i, width=tam, anchor='c', stretch = False)
+                df_tree.heading(i, text=i)
+            widthID = int(str(len(str(len(dfquery)))) + "0") + 10
+            df_tree.column('#0', width = widthID, anchor="w", stretch = False)
+            df_tree.tag_configure(tagname="gray", background="#f2f2f2")
+            df_tree.tag_configure(tagname="white", background="#ffffff")
+            cont = 0
+            for index, row in dfquery.iterrows():
+                if (cont % 2) == 0:
+                    df_tree.insert("", 'end', tags="gray",text=index, values=list(row))
+                else:
+                    df_tree.insert("", 'end', tags="white", text=index, values=list(row))
+                cont += 1
+                if Stop:
+                    raise Exception('Consulta Cancelada')
+
+            VarLinhas.set("Linhas: " + str(len(dfquery)) + "  |")
+            VarColunas.set("|  Colunas: " + str(len(dfquery.columns)) + "  |")
+            VarTempoConsulta.set(" | Tempo da Consulta: " + str(datetime.now() - DataConsulta))
+            # attach a Horizontal (x) scrollbar to the frame
+            treeXScroll = ttk.Scrollbar(Midframe, orient=HORIZONTAL)
+            treeXScroll.configure(command=df_tree.xview)
+            treeYScroll = ttk.Scrollbar(Bottomframe, orient=VERTICAL)
+            treeYScroll.configure(command=df_tree.yview)
+            df_tree.configure(xscrollcommand=treeXScroll.set)
+            df_tree.configure(yscrollcommand=treeYScroll.set)
+            treeXScroll.pack(fill=X)
+            treeYScroll.pack(side='left', expand=True, fill=Y)
+            df_tree.pack(expand=True, fill=BOTH)
+            df_tree.bind('<Button-3>', rClickerTabela, add='')
+        else:
+            sucesso = False
+            mensagem = ''
+            try:
+                new = engineAtual.connect()
+                com = new.begin()
+                new.execute(text(consulta))
+                com.commit()
+                sucesso = True
+            except Exception as e3:
+                mensagem = e3
+            if (sucesso):
+                raise Exception('A Query foi executada com sucesso')
+            else:
+                raise Exception(mensagem)
+
     except Exception as e2:
         try:
             df_tree.destroy()
@@ -261,7 +298,6 @@ def textAdd(Text):
     textQuery.insert('0.0',  Conteudo + Text)
     check_input()
 def clear():
-
     textQuery.delete("1.0", "end-1c")
 def df_to_excel():
     global dfquery
@@ -745,13 +781,14 @@ textQuery.pack(side=RIGHT, expand = True, fill = tk.BOTH)
 
 textQuery.tag_configure("blue", foreground="blue")
 textQuery.bind('<KeyRelease>', check_input)
-textQuery.bind('<Button-3>',rClicker, add='')
+textQuery.bind('<Button-3>',rClickerQuery, add='')
 textQueryYScroll = ttk.Scrollbar(topframe, orient=VERTICAL, command=textQuery.yview)
 textQueryYScroll.pack(side=LEFT, fill=Y)
 textQuery['yscrollcommand'] = textQueryYScroll.set
 
 df_tree = ttk.Treeview(Bottomframe, columns=[])
 df_tree.pack(expand = True, fill=BOTH)
+df_tree.bind('<Button-3>',rClickerTabela, add='')
 treeXScroll = ttk.Scrollbar(Midframe, orient=HORIZONTAL)
 
 treeYScroll = ttk.Scrollbar(Bottomframe, orient=VERTICAL)

@@ -4,13 +4,14 @@
 - arrumar bug da barra de rolagem da tabela quando altera o tamanho da coluna (feito)
 - colocar o postgree nas opções (feito)
 - arrumar o bug do executavel (feito)
+- Arrumar as consultas que não trazem resultados para o metodo do text (feito)
 
-
-- Arrumar as consultas que não trazem resultados para o metodo do text
+- Deixar a troca do banco mais rapida com a seleção de menus pela imagem (feita)
 - Colocar as tabelas do banco no lado esquerdo das consultas
 - colocar get e set valores de uma linha selecinada, na tree
 
-talvez:
 
+talvez:
+- EXPANDIR AINDA MAIS OS MENUS PERSONALIZADOS
 - arrumar o bug do texto de erro cobrir uma parte do frame inferior
 - deixar a filtragem das palavras reservas, mais rapida (colocar um mostrador de tempo de execução nele para testar)
