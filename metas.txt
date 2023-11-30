@@ -8,6 +8,7 @@
 
 - Arrumar as consultas que não trazem resultados para o metodo do text
 - Colocar as tabelas do banco no lado esquerdo das consultas
+- colocar get e set valores de uma linha selecinada, na tree
 
 talvez:
 
