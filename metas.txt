@@ -3,7 +3,11 @@
 - colocar barra de rolagem na consulta (FEITO)
 - arrumar bug da barra de rolagem da tabela quando altera o tamanho da coluna (feito)
 - colocar o postgree nas opções (feito)
-- arrumar o bug do executavel
+- arrumar o bug do executavel (feito)
+
+
+- Arrumar as consultas que não trazem resultados para o metodo do text
+- Colocar as tabelas do banco no lado esquerdo das consultas
 
 talvez:
 

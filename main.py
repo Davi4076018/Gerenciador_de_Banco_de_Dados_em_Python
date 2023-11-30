@@ -304,7 +304,7 @@ def config():
                     title='Mensagem de Erro',
                     message='O FireBird não está conectado, verifique a url de conexão')
         elif tipo == 3:
-            db_uri = str(dbSaveFirebird.get())
+            db_uri = str(dbSavePostGre.get())
             enginePostgre = create_engine(db_uri)
             try:
                 dftest = pd.read_sql_query('SELECT 1', con=enginePostgre)
