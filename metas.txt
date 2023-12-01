@@ -6,8 +6,15 @@
 - arrumar o bug do executavel (feito)
 - Arrumar as consultas que não trazem resultados para o metodo do text (feito)
 
-- Deixar a troca do banco mais rapida com a seleção de menus pela imagem (feita)
+- Deixar a troca do banco mais rapida com a seleção de menus pela imagem (feito)
+
 - Colocar as tabelas do banco no lado esquerdo das consultas
+    - sqlserver (feito)
+    - firebird (feito)
+    - postgree
+- Colocar barra de rolagem horizontal na arvore das tabelas
+
+- Colocar sistema de busca das tabelas disponiveis na table tree
 - colocar get e set valores de uma linha selecinada, na tree
 
 

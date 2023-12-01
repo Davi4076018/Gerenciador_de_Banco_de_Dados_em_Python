@@ -92,6 +92,8 @@ def rClickerQuery(e):
                 GetParametros()
                 IconSQLAtual.config(image=postgreeIcon)
 
+            tables_show()
+
         e.widget.focus()
         rmenu = Menu(None, tearoff=0, takefocus=0)
         rmenu.config(bg="white")
@@ -120,6 +122,21 @@ def rClickerTabela(e):
         print(e3)
 
     return "break"
+
+def rClickertreeTabelas(e):
+    try:
+
+        e.widget.focus()
+        rmenu = Menu(None, tearoff=0, takefocus=0)
+        rmenu.config(bg="white")
+        rmenu.add_command(label=' SELECT', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
+
+    except Exception as e3:
+        print(e3)
+
+    return "break"
+
 def check_input(event=''):
     conteudo = textQuery.get("1.0", "end-1c")
     mod = False
@@ -678,6 +695,64 @@ def config():
     btSetAtualTab3.place(x=300, y=350,
                          width=135,
                          height=30)
+def tables_show():
+    global tree_tables, treetableYScroll
+    try:
+        tree_tables.destroy()
+    except Exception as e3:
+        print(e3)
+
+    try:
+        treetableYScroll.destroy()
+    except Exception as e3:
+        print(e3)
+
+    tree_tables = ttk.Treeview(topframe, columns=[])
+    if SQLAtual == "Firebird":
+        tree_tables.column("#0", width=250, anchor='w')
+        tree_tables.heading("#0", text="Tabelas do FireBird")
+        db_uri = firebird_uri_Atual
+        engineAtual = create_engine(db_uri)
+        dfDatabases = pd.read_sql_query(""" SELECT RDB$RELATION_NAME as "Tables" FROM RDB$RELATIONS
+                                                WHERE (RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL
+                                                ORDER BY RDB$RELATION_NAME;""", con=engineAtual)
+        for table in dfDatabases['Tables'].values.tolist():
+            tree_tables.insert("", 'end', iid=str(table), text=str(table), values=(''))
+
+        tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
+
+        treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
+        treetableYScroll.configure(command=tree_tables.yview)
+        tree_tables.configure(yscrollcommand=treetableYScroll.set)
+        treetableYScroll.pack(side=LEFT, fill=Y)
+    elif SQLAtual == "SqlServer":
+        tree_tables.column("#0", width=250, anchor='w')
+        tree_tables.heading("#0", text="Tabelas do SQLSERVER")
+        params = urllib.parse.quote_plus(
+            'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
+        engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
+        dfDatabases = pd.read_sql_query("EXEC sp_databases", con=engineAtual)  # INSERT DO SQLSERVER
+        for database in dfDatabases['DATABASE_NAME'].values.tolist():
+            tree_tables.insert("", 'end', iid=str(database), open=False, text=str(database), values=(''))
+            dfTables = pd.read_sql_query("SELECT SCHEMA_NAME() as 'SCHEMA', TABLE_NAME FROM  " + str(database) + ".INFORMATION_SCHEMA.TABLES", con=engineAtual)
+            dfTables['TABLE_NAME'] = dfTables['SCHEMA'] + "." + dfTables['TABLE_NAME']
+            for row in range(len(dfTables)):
+                table = str(dfTables.iloc[row]['TABLE_NAME'])
+                t = table.split(".")
+                idformat = "[" + database + "].[" + t[0] + "].[" + t[1] + "]"
+                tree_tables.insert(str(database), 'end', iid=idformat, text=table, values=(''))
+
+        treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
+        treetableYScroll.configure(command=tree_tables.yview)
+        tree_tables.configure(yscrollcommand=treetableYScroll.set)
+        treetableYScroll.pack(side=LEFT, fill=Y)
+        tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
+    elif SQLAtual == "PostgreSQL":
+        db_uri = PostGre_uri_Atual
+        engineAtual = create_engine(db_uri)
+    # width of columns and alignment
+
+    tree_tables.pack(side=LEFT, fill=Y)
 
 root = Tk()
 screen_width = root.winfo_screenwidth()
@@ -743,7 +818,7 @@ Downframe.pack(side=BOTTOM, expand = False, fill='x')
 buttonConsulta = tk.Button(Headerframe, image=runIcon, command=trendStart, bg='white')
 buttonConsulta.pack(side='left')
 
-buttonSelect = tk.Button(Headerframe, image=selectIcon, command=lambda: textAdd(Text="\nSELECT * FROM tabela"), bg='white')
+buttonSelect = tk.Button(Headerframe, image=selectIcon, command=lambda: textAdd(Text="\n\nSELECT * FROM tabela"), bg='white')
 buttonSelect.pack(side='left')
 
 buttonWhere = tk.Button(Headerframe, image=whereIcon, command=lambda: textAdd(Text=" WHERE coluna = ''"), bg='white')
@@ -752,20 +827,20 @@ buttonWhere.pack(side='left')
 buttonOrderBy = tk.Button(Headerframe, image=orderByIcon, command=lambda: textAdd(Text=" ORDER BY coluna1, coluna2"), bg='white')
 buttonOrderBy.pack(side='left')
 
-buttonUpdate = tk.Button(Headerframe, image=updateIcon, command=lambda: textAdd(Text="\nUPDATE tabela\nSET coluna1 = 'valor', coluna2 = 'valor'\nWHERE coluna = 'valor'"), bg='white')
+buttonUpdate = tk.Button(Headerframe, image=updateIcon, command=lambda: textAdd(Text="\n\nUPDATE tabela\nSET coluna1 = 'valor', coluna2 = 'valor'\nWHERE coluna = 'valor'"), bg='white')
 buttonUpdate.pack(side='left')
 
-buttonDelete = tk.Button(Headerframe, image=deleteIcon, command=lambda: textAdd(Text="\nDELETE FROM tabela WHERE coluna = ''"), bg='white')
+buttonDelete = tk.Button(Headerframe, image=deleteIcon, command=lambda: textAdd(Text="\n\nDELETE FROM tabela WHERE coluna = ''"), bg='white')
 buttonDelete.pack(side='left')
 
-buttonTruncate = tk.Button(Headerframe, image=truncateIcon, command=lambda: textAdd(Text="\nTRUNCATE TABLE tabela"), bg='white')
+buttonTruncate = tk.Button(Headerframe, image=truncateIcon, command=lambda: textAdd(Text="\n\nTRUNCATE TABLE tabela"), bg='white')
 buttonTruncate.pack(side='left')
 
-buttonCreate = tk.Button(Headerframe, image=createIcon, command=lambda: textAdd(Text="\nCREATE TABLE tabela (\n    coluna1 varchar(255),\n    coluna2 datatipo,\n    coluna3 datatipo,\n   ....);"), bg='white')
+buttonCreate = tk.Button(Headerframe, image=createIcon, command=lambda: textAdd(Text="\n\nCREATE TABLE tabela (\n    coluna1 varchar(255),\n    coluna2 datatipo,\n    coluna3 datatipo,\n   ....);"), bg='white')
 buttonCreate.pack(side='left')
 
-IconSQLAtual = tk.Label(Headerframe, image=sqlAtualIcon, bg='white')
-IconSQLAtual.pack(side='right')
+buttonExcel = tk.Button(Headerframe, image=excelIcon, command=df_to_excel, bg='white')
+buttonExcel.pack(side='left')
 
 buttonConfig = tk.Button(Headerframe, image=configIcon, command=config, bg='white')
 buttonConfig.pack(side='right')
@@ -773,8 +848,15 @@ buttonConfig.pack(side='right')
 buttonClear = tk.Button(Headerframe, image=clearIcon, command=clear, bg='white')
 buttonClear.pack(side='right')
 
-buttonExcel = tk.Button(Headerframe, image=excelIcon, command=df_to_excel, bg='white')
-buttonExcel.pack(side='left')
+IconSQLAtual = tk.Label(Headerframe, image=sqlAtualIcon, bg='white')
+IconSQLAtual.pack(side='right')
+
+tree_tables = ttk.Treeview(topframe, columns=[])
+tree_tables.column("#0", width=250, anchor='w')
+tree_tables.heading("#0", text="")
+
+tree_tables.pack(side=LEFT, fill=Y)
+treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
 
 textQuery = tk.Text(topframe, undo = True)
 textQuery.pack(side=RIGHT, expand = True, fill = tk.BOTH)
@@ -783,7 +865,7 @@ textQuery.tag_configure("blue", foreground="blue")
 textQuery.bind('<KeyRelease>', check_input)
 textQuery.bind('<Button-3>',rClickerQuery, add='')
 textQueryYScroll = ttk.Scrollbar(topframe, orient=VERTICAL, command=textQuery.yview)
-textQueryYScroll.pack(side=LEFT, fill=Y)
+textQueryYScroll.pack(side=RIGHT, fill=Y)
 textQuery['yscrollcommand'] = textQueryYScroll.set
 
 df_tree = ttk.Treeview(Bottomframe, columns=[])
@@ -811,6 +893,8 @@ labelTempoConsulta.pack(side=LEFT)
 VarTempoConsulta.set(" |           ")
 
 textError = tk.Text(Bottomframe, undo=True)
+
+tables_show()
 
 root.title("Gerenciador de banco de dados em Python")
 root.mainloop()
