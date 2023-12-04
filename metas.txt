@@ -12,7 +12,9 @@
     - sqlserver (feito)
     - firebird (feito)
     - postgree
-- Colocar barra de rolagem horizontal na arvore das tabelas
+- Colocar barra de rolagem horizontal na arvore das tabelas (feito)
+
+- colocar para o tamanho da coluna das tabelas dos bancos ficar do tamanho padrão da tabela maxima sozinho
 
 - Colocar sistema de busca das tabelas disponiveis na table tree
 - colocar get e set valores de uma linha selecinada, na tree

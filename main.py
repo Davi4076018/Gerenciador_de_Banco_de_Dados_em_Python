@@ -696,7 +696,7 @@ def config():
                          width=135,
                          height=30)
 def tables_show():
-    global tree_tables, treetableYScroll
+    global tree_tables, treetableYScroll, treetableXScroll, inertopframe
     try:
         tree_tables.destroy()
     except Exception as e3:
@@ -707,15 +707,27 @@ def tables_show():
     except Exception as e3:
         print(e3)
 
-    tree_tables = ttk.Treeview(topframe, columns=[])
+    try:
+        treetableXScroll.destroy()
+    except Exception as e3:
+        print(e3)
+
+    try:
+        inertopframe.destroy()
+    except Exception as e3:
+        print(e3)
+
+    inertopframe = Frame(topframe)
+    tree_tables = ttk.Treeview(inertopframe, columns=[])
     if SQLAtual == "Firebird":
-        tree_tables.column("#0", width=250, anchor='w')
-        tree_tables.heading("#0", text="Tabelas do FireBird")
+        tree_tables.column("#0", width=250, stretch = False, anchor="w")
+        tree_tables.heading("#0", text="Tabelas do FireBird", anchor="w")
         db_uri = firebird_uri_Atual
         engineAtual = create_engine(db_uri)
         dfDatabases = pd.read_sql_query(""" SELECT RDB$RELATION_NAME as "Tables" FROM RDB$RELATIONS
                                                 WHERE (RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL
                                                 ORDER BY RDB$RELATION_NAME;""", con=engineAtual)
+        print(len(max(dfDatabases['Tables'].values.tolist(), key=len)))
         for table in dfDatabases['Tables'].values.tolist():
             tree_tables.insert("", 'end', iid=str(table), text=str(table), values=(''))
 
@@ -725,9 +737,23 @@ def tables_show():
         treetableYScroll.configure(command=tree_tables.yview)
         tree_tables.configure(yscrollcommand=treetableYScroll.set)
         treetableYScroll.pack(side=LEFT, fill=Y)
+
+
+        inertopframe.pack(side=LEFT, expand = False, fill='both')
+
+        treetableXScroll = ttk.Scrollbar(inertopframe, orient=HORIZONTAL)
+        treetableXScroll.configure(command=tree_tables.xview)
+        tree_tables.configure(xscrollcommand=treetableXScroll.set)
+        treetableXScroll.pack(side=TOP, fill=X)
+
+
+
+        tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
+
     elif SQLAtual == "SqlServer":
-        tree_tables.column("#0", width=250, anchor='w')
-        tree_tables.heading("#0", text="Tabelas do SQLSERVER")
+        listMaior = []
+        tree_tables.column("#0", width=250, stretch = False, anchor="w")
+        tree_tables.heading("#0", text="Tabelas do SQLSERVER", anchor="w")
         params = urllib.parse.quote_plus(
             'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
         engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
@@ -736,6 +762,10 @@ def tables_show():
             tree_tables.insert("", 'end', iid=str(database), open=False, text=str(database), values=(''))
             dfTables = pd.read_sql_query("SELECT SCHEMA_NAME() as 'SCHEMA', TABLE_NAME FROM  " + str(database) + ".INFORMATION_SCHEMA.TABLES", con=engineAtual)
             dfTables['TABLE_NAME'] = dfTables['SCHEMA'] + "." + dfTables['TABLE_NAME']
+            try:
+                listMaior.append(len(max(dfTables['TABLE_NAME'].values.tolist(), key=len)))
+            except:
+                pass
             for row in range(len(dfTables)):
                 table = str(dfTables.iloc[row]['TABLE_NAME'])
                 t = table.split(".")
@@ -746,10 +776,19 @@ def tables_show():
         treetableYScroll.configure(command=tree_tables.yview)
         tree_tables.configure(yscrollcommand=treetableYScroll.set)
         treetableYScroll.pack(side=LEFT, fill=Y)
+
+        inertopframe.pack(side=LEFT, expand = False, fill='both')
+
+        treetableXScroll = ttk.Scrollbar(inertopframe, orient=HORIZONTAL)
+        treetableXScroll.configure(command=tree_tables.xview)
+        tree_tables.configure(xscrollcommand=treetableXScroll.set)
+        treetableXScroll.pack(side=TOP, fill=X)
+
         tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
     elif SQLAtual == "PostgreSQL":
         db_uri = PostGre_uri_Atual
         engineAtual = create_engine(db_uri)
+        tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
     # width of columns and alignment
 
     tree_tables.pack(side=LEFT, fill=Y)
@@ -806,6 +845,9 @@ Headerframe.pack(side=TOP, expand = False, fill='both')
 topframe = Frame(root)
 topframe.pack(side=TOP, expand = True, fill='both')
 
+inertopframe = Frame(topframe)
+
+
 Midframe = Frame(root)
 Midframe.pack(expand = False, fill='x')
 
@@ -851,12 +893,16 @@ buttonClear.pack(side='right')
 IconSQLAtual = tk.Label(Headerframe, image=sqlAtualIcon, bg='white')
 IconSQLAtual.pack(side='right')
 
-tree_tables = ttk.Treeview(topframe, columns=[])
+tree_tables = ttk.Treeview(inertopframe, columns=[])
 tree_tables.column("#0", width=250, anchor='w')
 tree_tables.heading("#0", text="")
 
 tree_tables.pack(side=LEFT, fill=Y)
 treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
+treetableXScroll = ttk.Scrollbar(inertopframe, orient=HORIZONTAL)
+inertopframe.pack(side=LEFT, expand = True, fill='both')
+
+
 
 textQuery = tk.Text(topframe, undo = True)
 textQuery.pack(side=RIGHT, expand = True, fill = tk.BOTH)
@@ -867,6 +913,7 @@ textQuery.bind('<Button-3>',rClickerQuery, add='')
 textQueryYScroll = ttk.Scrollbar(topframe, orient=VERTICAL, command=textQuery.yview)
 textQueryYScroll.pack(side=RIGHT, fill=Y)
 textQuery['yscrollcommand'] = textQueryYScroll.set
+
 
 df_tree = ttk.Treeview(Bottomframe, columns=[])
 df_tree.pack(expand = True, fill=BOTH)
