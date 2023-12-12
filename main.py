@@ -36,6 +36,10 @@ PostGre_uri_Atual = ''
 
 palavrasReservadas = []
 
+dictableshow = {}
+
+TipoPesquisa = "tabela"
+
 t1 = ""
 Stop = False
 
@@ -122,21 +126,50 @@ def rClickerTabela(e):
         print(e3)
 
     return "break"
-
 def rClickertreeTabelas(e):
     try:
 
         e.widget.focus()
         rmenu = Menu(None, tearoff=0, takefocus=0)
         rmenu.config(bg="white")
+        ConsultasP = Menu(None, tearoff=0, takefocus=0)
+        ConsultasP.config(bg="white")
         rmenu.add_command(label=' SELECT', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        rmenu.add_cascade(label=' Consultas Prontas', image=excelIcon, compound='left', menu=ConsultasP)
+        ConsultasP.add_command(label=' Confere caso exista Duplicatas', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        ConsultasP.add_command(label=' Remove Duplicatas (mantendo 1)', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        ConsultasP.add_command(label=' Remove Duplicatas (todas)', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
         rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
 
     except Exception as e3:
         print(e3)
 
     return "break"
+def rClickertreePesquisa(e):
+    global TipoPesquisa
+    try:
+        def MudarTipoPesquisa(tipo):
+            global TipoPesquisa
+            if tipo == 1:
+                TipoPesquisa = "tabela"
+            elif tipo == 2:
+                TipoPesquisa = "coluna"
+            elif tipo == 3:
+                TipoPesquisa = "valor em coluna"
+            print(TipoPesquisa)
 
+        e.widget.focus()
+        rmenu = Menu(None, tearoff=0, takefocus=0)
+        rmenu.config(bg="white")
+        rmenu.add_command(label=' tabela (rapido)', image=excelIcon, compound='left', command=lambda: MudarTipoPesquisa(1))
+        rmenu.add_command(label=' coluna (demorado)', image=excelIcon, compound='left', command=lambda: MudarTipoPesquisa(2))
+        rmenu.add_command(label=' valor em coluna (muito demorado)', image=excelIcon, compound='left', command=lambda: MudarTipoPesquisa(3))
+        rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
+
+    except Exception as e3:
+        print(e3)
+
+    return "break"
 def check_input(event=''):
     conteudo = textQuery.get("1.0", "end-1c")
     mod = False
@@ -696,7 +729,8 @@ def config():
                          width=135,
                          height=30)
 def tables_show():
-    global tree_tables, treetableYScroll, treetableXScroll, inertopframe
+    global tree_tables, treetableYScroll, treetableXScroll, inertopframe, dictableshow
+    dictableshow = {}
     try:
         tree_tables.destroy()
     except Exception as e3:
@@ -720,17 +754,22 @@ def tables_show():
     inertopframe = Frame(topframe)
     tree_tables = ttk.Treeview(inertopframe, columns=[])
     if SQLAtual == "Firebird":
+        dictableshow['firebird'] = []
         tree_tables.column("#0", width=250, stretch = False, anchor="w")
         tree_tables.heading("#0", text="Tabelas do FireBird", anchor="w")
+        tree_tables.tag_configure(tagname="gray", background="#f2f2f2")
+        tree_tables.tag_configure(tagname="white", background="#ffffff")
         db_uri = firebird_uri_Atual
         engineAtual = create_engine(db_uri)
         dfDatabases = pd.read_sql_query(""" SELECT RDB$RELATION_NAME as "Tables" FROM RDB$RELATIONS
                                                 WHERE (RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL
                                                 ORDER BY RDB$RELATION_NAME;""", con=engineAtual)
-        print(len(max(dfDatabases['Tables'].values.tolist(), key=len)))
+        tam = len(max(dfDatabases['Tables'].values.tolist(), key=len)) * 7
+        tree_tables.column("#0", width=tam, stretch=False, anchor="w")
+        PesquisaTabela.config(width=int(tam/10))
         for table in dfDatabases['Tables'].values.tolist():
-            tree_tables.insert("", 'end', iid=str(table), text=str(table), values=(''))
-
+            tree_tables.insert("", 'end', iid=str(table), tags="white", text=str(table), values=(''))
+            dictableshow['firebird'].append(table)
         tree_tables.bind('<Button-3>', rClickertreeTabelas, add='')
 
         treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
@@ -752,14 +791,18 @@ def tables_show():
 
     elif SQLAtual == "SqlServer":
         listMaior = []
+        dictableshow["database"] = []
+        dictableshow["table"] = []
         tree_tables.column("#0", width=250, stretch = False, anchor="w")
         tree_tables.heading("#0", text="Tabelas do SQLSERVER", anchor="w")
+        tree_tables.tag_configure(tagname="gray", background="#f2f2f2")
+        tree_tables.tag_configure(tagname="white", background="#ffffff")
         params = urllib.parse.quote_plus(
             'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
         engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
         dfDatabases = pd.read_sql_query("EXEC sp_databases", con=engineAtual)  # INSERT DO SQLSERVER
         for database in dfDatabases['DATABASE_NAME'].values.tolist():
-            tree_tables.insert("", 'end', iid=str(database), open=False, text=str(database), values=(''))
+            tree_tables.insert("", 'end', iid=str(database), tags="white", open=False, text=str(database), values=(''))
             dfTables = pd.read_sql_query("SELECT SCHEMA_NAME() as 'SCHEMA', TABLE_NAME FROM  " + str(database) + ".INFORMATION_SCHEMA.TABLES", con=engineAtual)
             dfTables['TABLE_NAME'] = dfTables['SCHEMA'] + "." + dfTables['TABLE_NAME']
             try:
@@ -770,8 +813,13 @@ def tables_show():
                 table = str(dfTables.iloc[row]['TABLE_NAME'])
                 t = table.split(".")
                 idformat = "[" + database + "].[" + t[0] + "].[" + t[1] + "]"
-                tree_tables.insert(str(database), 'end', iid=idformat, text=table, values=(''))
+                tree_tables.insert(str(database), 'end', tags="gray",iid=idformat, text=table, values=(''))
+                dictableshow['database'].append(database)
+                dictableshow['table'].append(table)
 
+        tam = max(listMaior) * 7
+        tree_tables.column("#0", width=tam, stretch=False, anchor="w")
+        PesquisaTabela.config(width=int(tam/9))
         treetableYScroll = ttk.Scrollbar(topframe, orient=VERTICAL)
         treetableYScroll.configure(command=tree_tables.yview)
         tree_tables.configure(yscrollcommand=treetableYScroll.set)
@@ -792,6 +840,75 @@ def tables_show():
     # width of columns and alignment
 
     tree_tables.pack(side=LEFT, fill=Y)
+def buscaTabelas():
+    tree_tables.delete(*tree_tables.get_children())
+    tempdf = pd.DataFrame.from_dict(dictableshow)
+    #print(tempdf)
+    print(SQLAtual)
+    if SQLAtual == "SqlServer":
+        tempdf = tempdf[tempdf["table"].str.contains(PesquisaTabela.get(), case=False)].reset_index(drop=True)
+        for row in range(len(tempdf)):
+            table = str(tempdf.iloc[row]['table'])
+            t = table.split(".")
+            idformat = "[" + str(tempdf.iloc[row]['database']) + "].[" + t[0] + "].[" + t[1] + "]"
+            tree_tables.insert("", 'end', iid=idformat, tags="white",
+                               text=idformat, values=(''))
+    elif SQLAtual == "Firebird":
+        tempdf = tempdf[tempdf["firebird"].str.contains(PesquisaTabela.get(), case=False)].reset_index(drop=True)
+        for row in range(len(tempdf)):
+            tree_tables.insert("", 'end', iid=str(tempdf.iloc[row]['firebird']), tags="white", text=str(tempdf.iloc[row]['firebird']), values=(''))
+
+def buscaColuna():
+    tree_tables.delete(*tree_tables.get_children())
+    tempdf = pd.DataFrame.from_dict(dictableshow)
+    # print(tempdf)
+    print(SQLAtual)
+    achou = []
+    pesquisa = PesquisaTabela.get()
+    if SQLAtual == "SqlServer":
+        print("aqui")
+        params = urllib.parse.quote_plus(
+            'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
+        engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
+        for row in range(len(tempdf)):
+            table = str(tempdf.iloc[row]['table'])
+            t = table.split(".")
+            idformat = "[" + str(tempdf.iloc[row]['database']) + "].[" + t[0] + "].[" + t[1] + "]"
+            try:
+                colunas = pd.read_sql_query("SELECT TOP 0 * FROM " + idformat, con=engineAtual).columns.values.tolist()
+                if pesquisa.lower() in '\t'.join(colunas).lower():
+                    achou.append(idformat)
+            except Exception as e3:
+                print(e3)
+        for tabela in achou:
+            tree_tables.insert("", 'end', iid=tabela, tags="white",
+                               text=tabela, values=(''))
+    elif SQLAtual == "Firebird":
+        db_uri = firebird_uri_Atual
+        engineAtual = create_engine(db_uri)
+        dfDatabases = pd.read_sql_query(""" SELECT RDB$RELATION_NAME as "Tables" FROM RDB$RELATIONS
+                                                        WHERE (RDB$SYSTEM_FLAG <> 1 OR RDB$SYSTEM_FLAG IS NULL) AND RDB$VIEW_BLR IS NULL
+                                                        ORDER BY RDB$RELATION_NAME;""", con=engineAtual)
+        for row in range(len(tempdf)):
+            table = str(tempdf.iloc[row]['firebird'])
+            try:
+                colunas = pd.read_sql_query("SELECT first 0 * FROM " + table, con=engineAtual).columns.values.tolist()
+                if pesquisa.lower() in '\t'.join(colunas).lower():
+                    achou.append(table)
+            except Exception as e3:
+                print(e3)
+        for tabela in achou:
+            tree_tables.insert("", 'end', iid=tabela, tags="white",
+                               text=tabela, values=(''))
+
+
+def buscas():
+    if TipoPesquisa == "tabela":
+        buscaTabelas()
+    elif TipoPesquisa == "coluna":
+        buscaColuna()
+    elif TipoPesquisa == "valor em coluna":
+        pass
 
 root = Tk()
 screen_width = root.winfo_screenwidth()
@@ -810,6 +927,8 @@ updateIcon = PhotoImage(file="assets/icons/update_icon.png")
 truncateIcon = PhotoImage(file="assets/icons/truncate_icon.png")
 createIcon = PhotoImage(file="assets/icons/create_icon.png")
 clearIcon = PhotoImage(file="assets/icons/trash_icon.png")
+pesquisaIcon = PhotoImage(file="assets/icons/pesquisa_icon.png")
+refreshIcon = PhotoImage(file="assets/icons/refresh_icon.png")
 configIcon = PhotoImage(file="assets/icons/config_icon.png")
 firebirdIcon = PhotoImage(file="assets/icons/firebird_icon.png")
 sqlserverIcon = PhotoImage(file="assets/icons/sqlserver_icon.png")
@@ -843,7 +962,7 @@ Headerframe = Frame(root, style='My.TFrame')
 Headerframe.pack(side=TOP, expand = False, fill='both')
 
 topframe = Frame(root)
-topframe.pack(side=TOP, expand = True, fill='both')
+topframe.pack(side=TOP, expand = False, fill='both')
 
 inertopframe = Frame(topframe)
 
@@ -857,8 +976,19 @@ Bottomframe.pack(expand = True, fill='both')
 Downframe = Frame(root)
 Downframe.pack(side=BOTTOM, expand = False, fill='x')
 
+buttonRefresh = tk.Button(Headerframe, image=refreshIcon, command=tables_show, bg='white')
+buttonRefresh.pack(side='left')
+
+PesquisaTabela = tk.Entry(Headerframe, width= 35, font=("Calibri 12"))
+PesquisaTabela.pack(side='left', ipady=3, padx=4)
+
+PesquisaTabela.bind('<Button-3>',rClickertreePesquisa, add='')
+
+buttonPesqTable = tk.Button(Headerframe, image=pesquisaIcon, command=buscas, bg='white')
+buttonPesqTable.pack(side='left')
+
 buttonConsulta = tk.Button(Headerframe, image=runIcon, command=trendStart, bg='white')
-buttonConsulta.pack(side='left')
+buttonConsulta.pack(side='left', padx=20, anchor="n")
 
 buttonSelect = tk.Button(Headerframe, image=selectIcon, command=lambda: textAdd(Text="\n\nSELECT * FROM tabela"), bg='white')
 buttonSelect.pack(side='left')

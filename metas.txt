@@ -5,19 +5,31 @@
 - colocar o postgree nas opções (feito)
 - arrumar o bug do executavel (feito)
 - Arrumar as consultas que não trazem resultados para o metodo do text (feito)
-
 - Deixar a troca do banco mais rapida com a seleção de menus pela imagem (feito)
-
 - Colocar as tabelas do banco no lado esquerdo das consultas
     - sqlserver (feito)
     - firebird (feito)
     - postgree
 - Colocar barra de rolagem horizontal na arvore das tabelas (feito)
+- colocar para o tamanho da coluna das tabelas dos bancos ficar do tamanho padrão da tabela maxima sozinho (feito)
+- Colocar sistema de busca das tabelas disponiveis na table tree (feito)
+- botão de refresh das tabelas do banco (feito)
 
-- colocar para o tamanho da coluna das tabelas dos bancos ficar do tamanho padrão da tabela maxima sozinho
+- colocar novos tipos de buscas
+    coluna (feito)
+    valor em coluna
 
-- Colocar sistema de busca das tabelas disponiveis na table tree
+- colocar as buscas na trend para não travar o programa
+    - colocar icones para bloquear novas pesquisas enquanto tem uma trend ativa
+
+- colocar scripts prontos de consulta nas opções do botão direito na tabela
+
+- melhorar o config para o usuario colocar os parametros da Url separados inves de juntos
+- adicionar o mysql
+- mudar o icone do select nas tabelas atuais
 - colocar get e set valores de uma linha selecinada, na tree
+- colocar o insert nas querys
+- arrumar bug da lentidão quando a tabela é possui muitas colunas
 
 
 talvez:

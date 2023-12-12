@@ -1,4 +1,4 @@
-atual=SqlServer
+atual=Firebird
 sqlserver_uri=DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611
 firebird_uri=firebird+fdb://consulta:consulta@10.30.0.10/C:/SGO/banco/SGO.FB
 postgre_uri=postgresql://postgres:DCtcc2023@26.192.226.110:5432/DashConcursos
