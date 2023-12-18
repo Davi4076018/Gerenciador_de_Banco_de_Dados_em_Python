@@ -14,15 +14,15 @@
 - colocar para o tamanho da coluna das tabelas dos bancos ficar do tamanho padrão da tabela maxima sozinho (feito)
 - Colocar sistema de busca das tabelas disponiveis na table tree (feito)
 - botão de refresh das tabelas do banco (feito)
-
-- colocar novos tipos de buscas
+- colocar novos tipos de buscas (feito)
     coluna (feito)
-    valor em coluna
+- colocar scripts prontos de consulta nas opções do botão direito na tabela (feito)
+
+- criar um arquivo para salvar o texto quando o programa for fechado (feito)
 
 - colocar as buscas na trend para não travar o programa
     - colocar icones para bloquear novas pesquisas enquanto tem uma trend ativa
 
-- colocar scripts prontos de consulta nas opções do botão direito na tabela
 
 - melhorar o config para o usuario colocar os parametros da Url separados inves de juntos
 - adicionar o mysql
@@ -34,5 +34,6 @@
 
 talvez:
 - EXPANDIR AINDA MAIS OS MENUS PERSONALIZADOS
+-     valor em coluna (descartado por hora, muito pesado)
 - arrumar o bug do texto de erro cobrir uma parte do frame inferior
 - deixar a filtragem das palavras reservas, mais rapida (colocar um mostrador de tempo de execução nele para testar)

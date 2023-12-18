@@ -40,12 +40,29 @@ dictableshow = {}
 
 TipoPesquisa = "tabela"
 
+querybackup = ""
+
 t1 = ""
 Stop = False
 
 tela2 = ''
 
 dfquery = pd.DataFrame()
+
+
+def GetQueryBackup():
+    global querybackup
+    with open('assets/querybackup.txt', "r") as f:
+        querybackup = f.read()
+        f.close()
+    textAdd(querybackup)
+
+def SetQueryBackup():
+    global querybackup
+    querybackup = textQuery.get("1.0","end-1c")
+    with open('assets/querybackup.txt', "w") as f:
+        f.write(querybackup)
+        f.close()
 
 def GetReservadas():
     global palavrasReservadas
@@ -101,7 +118,7 @@ def rClickerQuery(e):
         e.widget.focus()
         rmenu = Menu(None, tearoff=0, takefocus=0)
         rmenu.config(bg="white")
-        rmenu.add_command(label=' Consultar', image=runIcon, compound='left', command=Consulta)
+        rmenu.add_command(label=' Consultar', image=runIcon, compound='left', command=lambda: trendStart(1))
         rmenu.add_command(label=' SqlServer', image=sqlserverIcon, compound='left', command=lambda: tornarAtualR(1))
         rmenu.add_command(label=' FireBird', image=firebirdIcon, compound='left', command=lambda: tornarAtualR(2))
         rmenu.add_command(label=' PostGree', image=postgreeIcon, compound='left', command=lambda: tornarAtualR(3))
@@ -129,6 +146,52 @@ def rClickerTabela(e):
 def rClickertreeTabelas(e):
     try:
 
+        def consultasProntas(tipo):
+            tabela = str(tree_tables.focus())
+            colunas = ''
+            if SQLAtual == "Firebird":
+                db_uri = firebird_uri_Atual
+                engineAtual = create_engine(db_uri)
+                colunas = pd.read_sql_query("SELECT first 0 * FROM " + tabela, con=engineAtual).columns.values.tolist()
+            elif SQLAtual == "SqlServer":
+                params = urllib.parse.quote_plus(
+                    'DRIVER={ODBC Driver 17 for SQL Server}; server=srvaudax01\SQLEXPRESS;database=SGO;uid=thiago.maximinio;pwd=Sarinha1611')  # CONFIGURAÇÕES DO SQLSERVER
+                engineAtual = create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
+                colunas = pd.read_sql_query("SELECT TOP 0 * FROM " + tabela, con=engineAtual).columns.values.tolist()
+            print(colunas)
+            colunasjoin = ", ".join(colunas)
+            print(colunasjoin)
+            if tipo == 1:
+                texto = "\n\nSELECT \n\t" + colunasjoin + " ,COUNT(*) \nFROM " + tabela + " \nGROUP BY \n\t" + colunasjoin + " \nHAVING \n\t" + " COUNT(*) > 1 "
+                print(texto)
+                textAdd(Text=texto)
+            if tipo == 2:
+                texto = """\n\n WITH cte AS ( 
+    SELECT 
+        """ + colunasjoin + """ 
+        ,ROW_NUMBER() OVER ( 
+            PARTITION BY  
+                """ + colunasjoin + """ 
+            ORDER BY  
+                """ + colunasjoin + """ 
+        ) row_num 
+     FROM  
+        """ + tabela + """  
+) 
+DELETE FROM cte 
+WHERE row_num > 1;
+ """
+                print(texto)
+                textAdd(Text=texto)
+            if tipo == 3:
+                texto = """\n\n WITH CTE AS 
+(SELECT *,R=RANK() OVER (ORDER BY """ + colunasjoin + """ ) 
+FROM """ + tabela + """  ) 
+DELETE CTE 
+WHERE R IN (SELECT R FROM CTE GROUP BY R HAVING COUNT(*)>1) 
+ """
+                print(texto)
+                textAdd(Text=texto)
         e.widget.focus()
         rmenu = Menu(None, tearoff=0, takefocus=0)
         rmenu.config(bg="white")
@@ -136,9 +199,9 @@ def rClickertreeTabelas(e):
         ConsultasP.config(bg="white")
         rmenu.add_command(label=' SELECT', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
         rmenu.add_cascade(label=' Consultas Prontas', image=excelIcon, compound='left', menu=ConsultasP)
-        ConsultasP.add_command(label=' Confere caso exista Duplicatas', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
-        ConsultasP.add_command(label=' Remove Duplicatas (mantendo 1)', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
-        ConsultasP.add_command(label=' Remove Duplicatas (todas)', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        ConsultasP.add_command(label=' Confere caso exista Duplicatas', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=1))
+        ConsultasP.add_command(label=' Remove Duplicatas (mantendo 1)', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=2))
+        ConsultasP.add_command(label=' Remove Duplicatas (todas)', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=3))
         rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
 
     except Exception as e3:
@@ -208,7 +271,7 @@ def Consulta():
             consulta = textQuery.get("1.0","end-1c")
         DataConsulta = datetime.now()
         try:
-            dfquery = pd.read_sql_query(consulta, con=engineAtual)  # INSERT DO SQLSERVER
+            dfquery = pd.read_sql_query(consulta, con=engineAtual)
         except:
             ConsultaSemRetorno = True
         if not(ConsultaSemRetorno):
@@ -332,12 +395,13 @@ def Consulta():
     ThreadON = False
     Stop = False
     buttonConsulta.config(image=runIcon)
-def trendStart():
+def trendStart(tipo):
     global ThreadON, Stop
     # caso a execução paralela esteja online, ele não é iniciado
     if not(ThreadON):
         buttonConsulta.config(image=stopIcon)
-        t1 = Thread(target=Consulta)
+        if tipo == 1:
+            t1 = Thread(target=Consulta)
         t1.start()
     else:
         Stop = True
@@ -910,6 +974,10 @@ def buscas():
     elif TipoPesquisa == "valor em coluna":
         pass
 
+def fechamento():
+    SetQueryBackup()
+    root.destroy()
+
 root = Tk()
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
@@ -987,7 +1055,7 @@ PesquisaTabela.bind('<Button-3>',rClickertreePesquisa, add='')
 buttonPesqTable = tk.Button(Headerframe, image=pesquisaIcon, command=buscas, bg='white')
 buttonPesqTable.pack(side='left')
 
-buttonConsulta = tk.Button(Headerframe, image=runIcon, command=trendStart, bg='white')
+buttonConsulta = tk.Button(Headerframe, image=runIcon, command=lambda: trendStart(1), bg='white')
 buttonConsulta.pack(side='left', padx=20, anchor="n")
 
 buttonSelect = tk.Button(Headerframe, image=selectIcon, command=lambda: textAdd(Text="\n\nSELECT * FROM tabela"), bg='white')
@@ -1071,7 +1139,10 @@ VarTempoConsulta.set(" |           ")
 
 textError = tk.Text(Bottomframe, undo=True)
 
+GetQueryBackup()
+
 tables_show()
 
 root.title("Gerenciador de banco de dados em Python")
+root.protocol("WM_DELETE_WINDOW", fechamento)
 root.mainloop()

@@ -1,0 +1,5 @@
+
+
+SELECT * FROM [SGO].[dbo].[t_TM_CSCRECBX]
+
+SELECT * FROM [SGO].[dbo].[t_TM_SITCLI]
