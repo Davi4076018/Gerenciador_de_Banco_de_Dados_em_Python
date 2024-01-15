@@ -34,6 +34,6 @@
 
 talvez:
 - EXPANDIR AINDA MAIS OS MENUS PERSONALIZADOS
--     valor em coluna (descartado por hora, muito pesado)
+- valor em coluna (descartado por hora, muito pesado)
 - arrumar o bug do texto de erro cobrir uma parte do frame inferior
 - deixar a filtragem das palavras reservas, mais rapida (colocar um mostrador de tempo de execução nele para testar)

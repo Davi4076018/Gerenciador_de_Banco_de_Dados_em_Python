@@ -28,6 +28,7 @@ engineAtual = ''
 antigo = ""
 
 ThreadON = False
+ThreadPesquisa = False
 
 SQLAtual = ''
 sqlserver_uri_Atual = ''
@@ -165,7 +166,7 @@ def rClickertreeTabelas(e):
                 texto = "\n\nSELECT \n\t" + colunasjoin + " ,COUNT(*) \nFROM " + tabela + " \nGROUP BY \n\t" + colunasjoin + " \nHAVING \n\t" + " COUNT(*) > 1 "
                 print(texto)
                 textAdd(Text=texto)
-            if tipo == 2:
+            elif tipo == 2:
                 texto = """\n\n WITH cte AS ( 
     SELECT 
         """ + colunasjoin + """ 
@@ -183,7 +184,7 @@ WHERE row_num > 1;
  """
                 print(texto)
                 textAdd(Text=texto)
-            if tipo == 3:
+            elif tipo == 3:
                 texto = """\n\n WITH CTE AS 
 (SELECT *,R=RANK() OVER (ORDER BY """ + colunasjoin + """ ) 
 FROM """ + tabela + """  ) 
@@ -192,16 +193,32 @@ WHERE R IN (SELECT R FROM CTE GROUP BY R HAVING COUNT(*)>1)
  """
                 print(texto)
                 textAdd(Text=texto)
+
+            elif tipo == 4:
+                texto = """\n\n SELECT COUNT(*) FROM """ + tabela
+                print(texto)
+                textAdd(Text=texto)
+            elif tipo == 5:
+                if SQLAtual == "SqlServer":
+                    texto = """\n\n SELECT TOP (1000) * FROM """ + tabela
+                elif SQLAtual == "Firebird":
+                    texto = """\n\n SELECT first 1000 * FROM """ + tabela
+                print(texto)
+                textAdd(Text=texto)
+
+
         e.widget.focus()
         rmenu = Menu(None, tearoff=0, takefocus=0)
         rmenu.config(bg="white")
         ConsultasP = Menu(None, tearoff=0, takefocus=0)
         ConsultasP.config(bg="white")
-        rmenu.add_command(label=' SELECT', image=excelIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
-        rmenu.add_cascade(label=' Consultas Prontas', image=excelIcon, compound='left', menu=ConsultasP)
-        ConsultasP.add_command(label=' Confere caso exista Duplicatas', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=1))
-        ConsultasP.add_command(label=' Remove Duplicatas (mantendo 1)', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=2))
-        ConsultasP.add_command(label=' Remove Duplicatas (todas)', image=excelIcon, compound='left', command=lambda: consultasProntas(tipo=3))
+        rmenu.add_command(label=' SELECT', image=selecttableIcon, compound='left', command=lambda: textAdd(Text="\n\nSELECT * FROM " + str(tree_tables.focus())))
+        rmenu.add_cascade(label=' Consultas Prontas', image=consultaprontaIcon, compound='left', menu=ConsultasP)
+        ConsultasP.add_command(label=' Confere caso exista Duplicatas', image=inconsultaprontaIcon, compound='left', command=lambda: consultasProntas(tipo=1))
+        ConsultasP.add_command(label=' Remove Duplicatas (mantendo 1)', image=inconsultaprontaIcon, compound='left', command=lambda: consultasProntas(tipo=2))
+        ConsultasP.add_command(label=' Remove Duplicatas (todas)', image=inconsultaprontaIcon, compound='left', command=lambda: consultasProntas(tipo=3))
+        ConsultasP.add_command(label=' Contar Linhas', image=inconsultaprontaIcon, compound='left',command=lambda: consultasProntas(tipo=4))
+        ConsultasP.add_command(label=' Primeiras 1000 linhas', image=inconsultaprontaIcon, compound='left',command=lambda: consultasProntas(tipo=5))
         rmenu.tk_popup(e.x_root+40, e.y_root+10,entry="0")
 
     except Exception as e3:
@@ -905,6 +922,7 @@ def tables_show():
 
     tree_tables.pack(side=LEFT, fill=Y)
 def buscaTabelas():
+    global ThreadPesquisa
     tree_tables.delete(*tree_tables.get_children())
     tempdf = pd.DataFrame.from_dict(dictableshow)
     #print(tempdf)
@@ -921,8 +939,10 @@ def buscaTabelas():
         tempdf = tempdf[tempdf["firebird"].str.contains(PesquisaTabela.get(), case=False)].reset_index(drop=True)
         for row in range(len(tempdf)):
             tree_tables.insert("", 'end', iid=str(tempdf.iloc[row]['firebird']), tags="white", text=str(tempdf.iloc[row]['firebird']), values=(''))
+    ThreadPesquisa = False
 
 def buscaColuna():
+    global ThreadPesquisa
     tree_tables.delete(*tree_tables.get_children())
     tempdf = pd.DataFrame.from_dict(dictableshow)
     # print(tempdf)
@@ -964,15 +984,20 @@ def buscaColuna():
         for tabela in achou:
             tree_tables.insert("", 'end', iid=tabela, tags="white",
                                text=tabela, values=(''))
+    ThreadPesquisa = False
 
 
 def buscas():
-    if TipoPesquisa == "tabela":
-        buscaTabelas()
-    elif TipoPesquisa == "coluna":
-        buscaColuna()
-    elif TipoPesquisa == "valor em coluna":
-        pass
+    global ThreadPesquisa
+    if not(ThreadPesquisa):
+        ThreadPesquisa = True
+        if TipoPesquisa == "tabela":
+            t2 = Thread(target=buscaTabelas)
+        elif TipoPesquisa == "coluna":
+            t2 = Thread(target=buscaColuna)
+        elif TipoPesquisa == "valor em coluna":
+            pass
+        t2.start()
 
 def fechamento():
     SetQueryBackup()
@@ -1002,6 +1027,9 @@ firebirdIcon = PhotoImage(file="assets/icons/firebird_icon.png")
 sqlserverIcon = PhotoImage(file="assets/icons/sqlserver_icon.png")
 excelIcon = PhotoImage(file="assets/icons/excel_icon.png")
 postgreeIcon = PhotoImage(file="assets/icons/postgre_icon.png")
+consultaprontaIcon = PhotoImage(file="assets/icons/consulta_prontas_icon.png")
+inconsultaprontaIcon = PhotoImage(file="assets/icons/in_consultas_prontas_icon.png")
+selecttableIcon = PhotoImage(file="assets/icons/select_table_icon.png")
 
 tab1Fundo = PhotoImage(file="assets/fundos/tab1_fundo.png")
 tab2Fundo = PhotoImage(file="assets/fundos/tab2_fundo.png")
