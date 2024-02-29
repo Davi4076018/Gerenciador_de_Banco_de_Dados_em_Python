@@ -1,0 +1,77 @@
+
+SELECT
+        pedid.id_pedido 	as id_pedido, 
+        pedid.PEDCODIGO as PEDCODIGO, 
+        pedid.PGTCODIGO as PgtCodigo,
+        pedid.EMPCODIGO as EmpCodigo, 
+        pedid.CLICODIGO	 as CliCodigo, 
+        clien.clirazsocial as CliRazSocial, 
+	clien.clicnpjcpf as CliCpfCnpj,
+	funcio.funnome as FunDigitador,
+	cast(pedid.peddtemis as date)	 as DataPedido
+        FROM pedid          
+        LEFT JOIN clien on (pedid.clicodigo = clien.clicodigo) 
+	LEFT JOIN funcio	on (funcio.FUNCODIGO = clien.FUNCODIGO)
+        WHERE pedid.id_pedido = '57923'
+
+
+
+
+
+ SELECT first 1 procodigo FROM produ                          
+
+ SELECT COUNT(*) FROM PDPRD                          
+
+ SELECT first 10 * FROM PDPRD            WHERE id_pedido = '57910'       
+
+ SELECT 
+	pedid.id_pedido,
+ 	sum(cast(PDPRD.pdpqtdade as float)) as PdpQtdade, 
+	case	when tplente.tpltppedid = 'L' or produ.gr1codigo = 2 or produ.gr1codigo = 6 then 'Acabada' else 'Bloco' end as TipoLente 
+ FROM pedid
+ LEFT JOIN PDPRD on  (PDPRD.id_pedido = pedid.id_pedido)     
+ LEFT JOIN produ on (produ.procodigo = PDPRD.procodigo)  
+ LEFT JOIN tplente	on tplente.tplcodigo = produ.tplcodigo
+ WHERE pedid.id_pedido = '57910' 
+ group by	pedid.id_pedido 
+                        ,case	when tplente.tpltppedid = 'L' or produ.gr1codigo = 2 or produ.gr1codigo = 6 then 'Acabada' else 'Bloco' end                
+       
+
+UPDATE tabela
+SET coluna1 = 'valor', coluna2 = 'valor'
+WHERE coluna = 'valor'
+
+ SELECT COUNT(*) FROM PEDID
+
+
+select   pedid.id_pedido 
+                    ,pedid.PEDCODIGO 
+                    ,pedid.EMPCODIGO   
+                    ,case   when produ.procodigo2 = '00004' or produ.procodigo2 = '00022' then 'BSP' || produ.procodigo
+                            when produ.procodigo2 = '00002' or produ.procodigo2 = '00027' then 'BPE' || produ.procodigo 
+                            when produ.procodigo2 = '00026'                            then 'BSP' || produ.procodigo 
+                            when produ.procodigo2 = '00001'                            then 'BV' || produ.procodigo 
+                            when produ.procodigo2 = '00003'                            then 'BE' || produ.procodigo 
+                            when produ.procodigo2 = '00005'                            then 'SPAR' || produ.procodigo
+                            when produ.procodigo2 = '00006'                            then 'SP' || produ.procodigo
+                            when produ.procodigo2 = '00007'                            then 'SWAR' || produ.procodigo 
+                            else pdprd.procodigo end														 
+                    ,case   when produ.procodigo2 = '00004' or produ.procodigo2 = '00022' then '00030'  
+                            when produ.procodigo2 = '00002' or produ.procodigo2 = '00027' then '00034'  
+                            when produ.procodigo2 = '00026'                            then '00031' 
+                            when produ.procodigo2 = '00001'                            then '00038' 
+                            when produ.procodigo2 = '00003'                            then '00077' 
+                            when produ.procodigo2 = '00005'                            then '00093' 
+                            when produ.procodigo2 = '00006'                            then '00176' 
+                            when produ.procodigo2 = '00007'                            then '00094' 
+                            else produ.procodigo2 end															 
+                    ,cast(pdprd.pdpqtdade as float)															as PdpQtdade 
+                  ,case	when tplente.tpltppedid = 'L' or produ.gr1codigo = 2 or produ.gr1codigo = 6 then 'Acabada' else 'Bloco' end as TipoLente  
+            from pedid 
+            left join pdprd	on (pdprd.id_pedido = pedid.id_pedido) 
+            left join produ  on (produ.procodigo  = pdprd.procodigo ) 
+            left join tplente	on (tplente.tplcodigo = produ.tplcodigo) 
+	    left join pduni	on (pduni.id_pedido = pedid.id_pedido) 
+            where   pedid.id_pedido = '54300' 
+            order by pedid.id_pedido
+                          
