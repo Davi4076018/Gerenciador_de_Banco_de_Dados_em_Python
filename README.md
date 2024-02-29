@@ -6,11 +6,11 @@ A interface do programa apresenta a visualização de todas as tabelas do Banco 
 
 <br />
  <p align="center">
-<a href="https://github.com/Davi4076018/Melhorador_de_Imagens-12_Filtros_de_Realce/raw/main/dist/Melhorador%20de%20Imagens%20-%2012%20Filtros%20de%20Realce.rar" >
+<a href="https://github.com/Davi4076018/Gerenciador_de_Banco_de_Dados_em_Python/blob/7654391bb2b966149370efb8a19d3b59da4ccfdc/dist/dist.rar" >
   <img src="https://raw.githubusercontent.com/Davi4076018/Melhorador_de_Imagens-Filtro-Boost/main/readme-images/Icon%20download.png" width = "100px"/>
   <br />
 </a>
-  <a href="https://github.com/Davi4076018/Melhorador_de_Imagens-12_Filtros_de_Realce/raw/main/dist/Melhorador%20de%20Imagens%20-%2012%20Filtros%20de%20Realce.rar">Donwload .Exe</a>
+  <a href="https://github.com/Davi4076018/Gerenciador_de_Banco_de_Dados_em_Python/blob/7654391bb2b966149370efb8a19d3b59da4ccfdc/dist/dist.rar">Donwload .Exe</a>
   <br />
 </p>
 <br />
